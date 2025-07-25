@@ -1,0 +1,20 @@
+{
+  "name": "daily-report-api",
+  "version": "1.0.0",
+  "description": "고수학 데일리 리포트 API 서버",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^4.18.2",
+    "node-fetch": "^3.3.2"
+  },
+  "engines": {
+    "node": ">=16.x"
+  },
+  "author": "",
+  "license": "ISC"
+}
