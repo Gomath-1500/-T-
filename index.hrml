@@ -35,16 +35,7 @@ input { width:100%; padding:6px; margin-bottom:10px; }
 <script>
 async function fetchReport(dataObj){
   try {
-    const res = await fetch('https://gomath-daily-report.onrender.com/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(dataObj)
-    });
-    const data = await res.json();
-    return data.report;
-  } catch(e){
-    console.error(e);
-    return `⚠️ GPT 서버 연결 오류: 수에프리뷰를 가져오지 못했습니다.`;
+    const res = await fetch('https://gomath-daily-report.onrender.com/수업리뷰를 가져오지 못했습니다.`;
   }
 }
 
