@@ -17,14 +17,14 @@ input { width:100%; padding:6px; margin-bottom:10px; }
 <body>
 <h2>📋 고수학 데일리 리포트 생성기</h2>
 
-<p>반명, 진도, 과제, 테스트 범위, 학생 정보를 한꺼번에 입력하세요.</p>
-<textarea id="inputData" placeholder="예)\n반명: 중3T(수용)\n진도: 고등대수 등차수열~수열의 합과 일반항의 관계\n과제: 등차수열 A단계 및 지수.로그함수 오답 정리\n테스트 범위: 등차수열 진도 몰입수업으로 대체\n학생: 이종찬 80 65 지각10분 과제미흡, 김유겸 결석"></textarea>
+<p>반명, 진도, 과제, 테스트 범위, 학생 정보를 한꾸버에 입력하세요.</p>
+<textarea id="inputData" placeholder="예)\n반명: 중3T(수용)\n진도: 고등대수 등차수에어~수에의 합과 일반항의 관계\n과제: 등차수에어 A단계 및 지수.로그함수 오단 정리\n테스트 범위: 등차수에어 진도 몰입수열으로 대체\n학생: 이종찬 80 65 지갑20분 과제미흡, 김유감 결석"></textarea>
 
 <p>담임선생님 이름:</p>
 <input id="teacherName" placeholder="예) 박용" />
 
 <p>추가 요구조건:</p>
-<textarea id="extraRequest" placeholder="예) 리뷰는 반말로 작성해줘, 인사말에 특정 멘트 추가 등"></textarea>
+<textarea id="extraRequest" placeholder="예) 리보드는 반말로, 인사말에 특정 멘트 추가 등"></textarea>
 
 <br>
 <button onclick="generateReports()">리포트 생성</button>
@@ -44,7 +44,7 @@ async function fetchReport(dataObj){
     return data.report;
   } catch(e){
     console.error(e);
-    return `⚠️ GPT 서버 연결 오류: 수업리뷰를 가져오지 못했습니다.`;
+    return `⚠️ GPT 서버 연결 오류: 수에프리뷰를 가져오지 못했습니다.`;
   }
 }
 
@@ -102,7 +102,7 @@ async function generateReports() {
     if (testRange.includes('월말')) testLabel = '월말 테스트';
     else if (testRange.includes('주간')) testLabel = '주간 테스트';
     else if (testRange.includes('진단')) testLabel = '진단 테스트';
-    else if (testRange.trim() !== '') testLabel = testRange; // 다른 범위 입력시 그대로
+    else if (testRange.trim() !== '') testLabel = testRange;
 
     const fullReport = await fetchReport({
       name,
