@@ -1,142 +1,881 @@
 <!DOCTYPE html>
+
 <html lang="ko">
+
 <head>
-<meta charset="UTF-8">
-<title>고수학 리포트 생성기</title>
+
+<meta charset="UTF-8" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<title>고수학 데일리 리포트 생성기 v4 – Hybrid</title>
+
 <style>
-body { font-family:sans-serif; padding:20px; }
-textarea { width:100%; height:150px; margin-bottom:10px; }
-input { width:100%; padding:6px; margin-bottom:10px; }
-.report { margin-top:20px; padding:12px; border:1px solid #ccc; border-radius:8px; white-space:pre-line; background:#f9f9f9; }
-.report:focus { outline:2px solid #4CAF50; }
-.copy-btn, .all-copy-btn { margin-top:5px; cursor:pointer; padding:6px 12px; border:none; border-radius:6px; }
-.copy-btn { background:#4CAF50; color:white; margin-right:10px; }
-.all-copy-btn { background:#2196F3; color:white; margin-top:20px; }
+
+  :root { --bg:#0b1020;--panel:#111833;--muted:#7780a1;--text:#eef1ff;--brand:#5aa6ff;--good:#22c55e;--warn:#f59e0b;--bad:#ef4444; }
+
+  *{box-sizing:border-box}
+
+  body{margin:0;background:linear-gradient(180deg,#0b1020,#0c1226 40%,#0b1020);color:var(--text);font:16px/1.5 system-ui,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,Arial,sans-serif}
+
+  .wrap{max-width:980px;margin:32px auto;padding:0 16px}
+
+  h1{font-size:26px;margin:0 0 12px;display:flex;gap:10px;align-items:center}
+
+  .card{background:var(--panel);border:1px solid #1f2a4a;border-radius:16px;padding:16px;margin:14px 0;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+
+  label{font-weight:600;color:#cfd7ff;display:block;margin:12px 0 8px}
+
+  textarea,input,select{width:100%;color:var(--text);background:#0e1530;border:1px solid #23305a;border-radius:10px;padding:10px 12px;outline:none}
+
+  textarea{min-height:120px;resize:vertical}
+
+  input:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 2px #2b7fff22}
+
+  .grid{display:grid;gap:12px}
+
+  .g2{grid-template-columns:1fr 1fr}
+
+  .btn{appearance:none;border:0;border-radius:12px;padding:10px 14px;font-weight:700;cursor:pointer}
+
+  .btn.primary{background:linear-gradient(135deg,#4aa3ff,#7cc8ff);color:#071226}
+
+  .btn.secondary{background:#1b2546;color:#dbe5ff;border:1px solid #2a396b}
+
+  .btn.ghost{background:transparent;color:#c9d6ff;border:1px dashed #33436f}
+
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+  .muted{color:var(--muted);font-size:13px}
+
+  .reports{display:grid;gap:10px}
+
+  .report{white-space:pre-wrap;background:#0f1633;border:1px solid #26335e;border-radius:12px;padding:12px}
+
+  .report[contenteditable="true"]:focus{outline:2px solid var(--brand)}
+
+  .chip{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border-radius:999px;background:#0f1b3c;border:1px solid #2a3b6e}
+
+  .ok{color:var(--good)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+
+  .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0b1330;border:1px solid #2a3b6e;border-bottom-width:3px;border-radius:8px;padding:2px 6px}
+
+  .right{margin-left:auto}
+
+  .row .chip input[type="checkbox"]{transform:translateY(1px)}
+
+  .btn.sm{padding:6px 10px;font-size:12px;border-radius:10px}
+
+  .report-item{margin-bottom:10px}
+
 </style>
+
 </head>
+
 <body>
-<h2>📋 고수학 데일리 리포트 생성기</h2>
 
-<p>반명, 진도, 과제, 테스트 범위, 학생 정보를 한꾸버에 입력하세요.</p>
-<textarea id="inputData" placeholder="예)\n반명: 중3T(수용)\n진도: 고등대수 등차수에어~수에의 합과 일반항의 관계\n과제: 등차수에어 A단계 및 지수.로그함수 오단 정리\n테스트 범위: 등차수에어 진도 몰입수열으로 대체\n학생: 이종찬 80 65 지갑20분 과제미흡, 김유감 결석"></textarea>
+  <div class="wrap">
 
-<p>담임선생님 이름:</p>
-<input id="teacherName" placeholder="예) 박용" />
+    <h1>📋 고수학 데일리 리포트 생성기 <span class="chip"><span class="ok">v4</span> Hybrid</span></h1>
 
-<p>추가 요구조건:</p>
-<textarea id="extraRequest" placeholder="예) 리보드는 반말로, 인사말에 특정 멘트 추가 등"></textarea>
+    <div class="card">
 
-<br>
-<button onclick="generateReports()">리포트 생성</button>
+      <div class="grid">
 
-<div id="reports"></div>
-<button class="all-copy-btn" onclick="copyAllReports()">📋 반 전체 리포트 복사하기</button>
+        <div>
+
+          <label>입력 데이터 (한꺼번에 붙여넣기)</label>
+
+          <textarea id="inputData" placeholder="예)
+
+반명: 중3T(수용)
+
+진도: 중3-1 수열의 합(Σ), 등차수열 일반항
+
+과제: 중3-1 수열 P1~P3, 오답정리
+
+테스트 범위: 중3-1 등차수열 대표유형 (6)
+
+학생: 이종찬 5 적극적, 김유겸 결석, 박태영 4 지각10분 졸음, 구동건 미응시(사유: 조퇴)"></textarea>
+
+          <div class="muted">🧩 포맷 힌트: <span class="kbd">반명:</span> <span class="kbd">진도:</span> <span class="kbd">과제:</span> <span class="kbd">테스트 범위:</span> <span class="kbd">학생:</span> (쉼표로 구분)</div>
+
+        </div>
+
+        <div>
+
+          <label>담임선생님 이름</label>
+
+          <input id="teacherName" placeholder="예) 박용" />
+
+          <div class="grid g2">
+
+            <div>
+
+              <label>리포트 날짜</label>
+
+              <div class="row">
+
+                <input type="date" id="reportDate" />
+
+                <button class="btn secondary sm" id="btn-today">오늘 날짜</button>
+
+              </div>
+
+              <div class="muted">페이지가 열리면 자동으로 오늘 날짜가 입력됩니다.</div>
+
+            </div>
+
+            <div>
+
+              <label>기본 값</label>
+
+              <select id="defaults">
+
+                <option value="정상|우수|정상">출결 정상 · 태도 우수 · 과제 정상</option>
+
+                <option value="정상|보통|정상">출결 정상 · 태도 보통 · 과제 정상</option>
+
+                <option value="정상|우수|미흡">출결 정상 · 태도 우수 · 과제 미흡</option>
+
+              </select>
+
+            </div>
+
+          </div>
+
+          <label>반별 공지사항</label>
+
+          <textarea id="notice" placeholder="예) 이번 주 토요일 진단평가 실시, 시험범위 공지 예정 등"></textarea>
+
+          <label>추가 요구조건 (톤·특정 멘트 등)</label>
+
+          <textarea id="extraRequest" placeholder="예) 인사말에 ‘고수학’ 강조, 반명은 인사말에서 생략"></textarea>
+
+        </div>
+
+      </div>
+
+      <div class="row" style="margin-top:10px">
+
+        <button class="btn primary" id="btn-generate">리포트 생성</button>
+
+        <button class="btn secondary" id="btn-sample">샘플 입력</button>
+
+        <button class="btn ghost" id="btn-clear">초기화</button>
+
+        <span class="right"></span>
+
+      </div>
+
+      <div class="row" style="margin-top:8px">
+
+        <label class="chip" style="cursor:pointer">
+
+          <input type="checkbox" id="useGpt" checked /> AI 보강(GPT)
+
+        </label>
+
+        <input id="gptEndpoint" placeholder="예) http://localhost:3000/generate" />
+
+        <span class="muted">키는 서버(.env)에만 보관하세요. 실패 시 자동으로 로컬 템플릿으로 전환합니다.</span>
+
+      </div>
+
+    </div>
+
+
+
+    <div class="card">
+
+      <div class="row">
+
+        <div class="chip">출력 <span id="count" class="muted">0건</span></div>
+
+        <button class="btn secondary" id="btn-copy-all">📋 반 전체 복사</button>
+
+        <button class="btn secondary" id="btn-download">⬇️ TXT로 저장</button>
+
+      </div>
+
+      <div id="reports" class="reports" style="margin-top:12px"></div>
+
+    </div>
+
+
+
+    <div class="muted">💡 규칙 요약: “안녕하세요. 고수학 학원입니다.”로 시작, 점수 100점 환산, 수업리뷰는 존댓말 문장마다 줄바꿈, 테스트 미응시는 반드시 사유 표기, 단원 개념 1개 이상 언급.</div>
+
+  </div>
+
+
 
 <script>
-async function fetchReport(dataObj){
-  try {
-    const res = await fetch('https://gomath-daily-report.onrender.com/수업리뷰를 가져오지 못했습니다.`;
-  }
+
+const $ = (sel)=>document.querySelector(sel);
+
+const $$ = (sel)=>Array.from(document.querySelectorAll(sel));
+
+
+
+// ===== 안정적인 복사 유틸 (3단계 폴백) =====
+
+async function copyToClipboard(text){
+
+  try{
+
+    if(navigator.clipboard){
+
+      await navigator.clipboard.writeText(text);
+
+      return true;
+
+    }
+
+  }catch(e){ console.warn('navigator.clipboard 실패', e); }
+
+  try{
+
+    const ta = document.createElement('textarea');
+
+    ta.value = text; ta.setAttribute('readonly','');
+
+    ta.style.position='fixed'; ta.style.top='-9999px';
+
+    document.body.appendChild(ta);
+
+    ta.focus(); ta.select();
+
+    const ok = document.execCommand('copy');
+
+    document.body.removeChild(ta);
+
+    if(ok) return true;
+
+  }catch(e){ console.warn('execCommand(copy) 실패', e); }
+
+  return false;
+
 }
 
-async function generateReports() {
-  const input = document.getElementById('inputData').value;
-  const extraRequest = document.getElementById('extraRequest').value;
-  const teacherName = document.getElementById('teacherName').value;
-  const lines = input.split('\n').map(l => l.trim()).filter(l => l);
+function selectNodeText(el){
 
-  let className = '', progress = '', homework = '', testRange = '';
-  let studentsRaw = [];
+  const range = document.createRange();
 
-  lines.forEach(line => {
-    if (line.startsWith('반명')) className = line.split(':')[1].trim();
-    else if (line.startsWith('진도')) progress = line.split(':')[1].trim();
-    else if (line.startsWith('과제')) homework = line.split(':')[1].trim();
-    else if (line.startsWith('테스트 범위') || line.startsWith('테스트')) testRange = line.split(':')[1].trim();
-    else if (line.startsWith('학생')) {
-      const studentStr = line.split(':')[1].trim();
-      studentsRaw = studentStr.split(/[,]/).map(s => s.trim());
-    }
-  });
+  range.selectNodeContents(el);
 
-  const reportsContainer = document.getElementById('reports');
-  reportsContainer.innerHTML = '';
+  const sel = window.getSelection();
 
-  for (let idx = 0; idx < studentsRaw.length; idx++) {
-    const raw = studentsRaw[idx];
-    const parts = raw.split(' ').filter(p => p.trim());
-    const name = parts[0];
+  sel.removeAllRanges();
 
-    let dailyScore = '';
-    let weakScore = '';
-    let attendance = '정상';
-    let attitude = '우수';
-    let homeworkStatus = '정상';
+  sel.addRange(range);
 
-    for (let i = 1; i < parts.length; i++) {
-      const token = parts[i];
-      if (/^\d+$/.test(token)) {
-        if (dailyScore === '') dailyScore = token;
-        else weakScore = token;
-      } else if (token.includes('결석')) {
-        attendance = '결석';
-      } else if (token.includes('지각')) {
-        attendance = token;
-      } else if (token.includes('과제') && token.includes('미흡')) {
-        homeworkStatus = '미흡';
-      } else if (token.includes('소극') || token.includes('피곤')) {
-        attitude = '보통';
-      }
-    }
+  el.focus();
 
-    let testLabel = '데일리 테스트';
-    if (testRange.includes('월말')) testLabel = '월말 테스트';
-    else if (testRange.includes('주간')) testLabel = '주간 테스트';
-    else if (testRange.includes('진단')) testLabel = '진단 테스트';
-    else if (testRange.trim() !== '') testLabel = testRange;
-
-    const fullReport = await fetchReport({
-      name,
-      className,
-      progress,
-      homework,
-      testRange: testLabel,
-      score: dailyScore,
-      weakScore,
-      extraRequest,
-      teacherName,
-      attendance,
-      attitude,
-      homeworkStatus
-    });
-
-    const div = document.createElement('div');
-    div.className = 'report';
-    div.contentEditable = true;
-    div.textContent = fullReport;
-
-    const btn = document.createElement('button');
-    btn.className = 'copy-btn';
-    btn.textContent = '📋 복사';
-    btn.onclick = () => {
-      navigator.clipboard.writeText(div.textContent).then(() => {
-        alert(name + ' 학생 리포트가 복사되었습니다.');
-      });
-    };
-
-    reportsContainer.appendChild(div);
-    reportsContainer.appendChild(btn);
-  }
 }
 
-function copyAllReports() {
-  const reportDivs = document.querySelectorAll('.report');
-  let allText = '';
-  reportDivs.forEach(div => { allText += div.textContent + '\n\n'; });
-  navigator.clipboard.writeText(allText).then(() => {
-    alert('반 전체 리포트가 복사되었습니다.');
-  });
+
+
+// ===== 날짜 유틸 (KST 기준) =====
+
+function todayKSTISO(){
+
+  const now = new Date();
+
+  const utc = now.getTime() + now.getTimezoneOffset()*60000;
+
+  const kst = new Date(utc + 9*3600000); // UTC+9
+
+  const y = kst.getFullYear();
+
+  const m = String(kst.getMonth()+1).padStart(2,'0');
+
+  const d = String(kst.getDate()).padStart(2,'0');
+
+  return `${y}-${m}-${d}`;
+
 }
+
+function fmtDate(iso){
+
+  if(!iso) return '';
+
+  const [y,m,d] = iso.split('-');
+
+  return `${m.padStart(2,'0')}월 ${d.padStart(2,'0')}일`;
+
+}
+
+function ensureToday(){
+
+  const el = $('#reportDate');
+
+  if(el && !el.value){ el.value = todayKSTISO(); }
+
+}
+
+
+
+// 100점 환산
+
+function to100(score, base){ return Math.round((Number(score)/Number(base))*100); }
+
+
+
+// 테스트 범위 끝 괄호 안의 숫자만 분모로 인정. (7), (7문항), (총7문항) 등 모두 OK
+
+function extractBaseFromRange(range){
+
+  if(!range) return null;
+
+  const s = String(range).trim();
+
+  if(!s.endsWith(')')) return null;
+
+  const start = s.lastIndexOf('(');
+
+  if(start === -1) return null;
+
+  const inside = s.slice(start+1, -1);
+
+  const m = inside.match(/[0-9]{1,3}/);
+
+  if(m){
+
+    const n = Number(m[0]);
+
+    if(Number.isFinite(n) && n>=1 && n<=999) return n;
+
+  }
+
+  return null;
+
+}
+
+
+
+// 학년-학기 추정
+
+function detectGradeSem(text){
+
+  const t=String(text||'');
+
+  const m=t.match(/(중[1-3](?:-[12])?|고[1-3](?:-[12])?|공통수학 ?I{1,2})/);
+
+  return m?m[1]:'';
+
+}
+
+function normalizeRangeLabel(range, className){
+
+  const gsInRange = detectGradeSem(range);
+
+  if(gsInRange) return String(range||'').trim();
+
+  const gsFromClass = detectGradeSem(className);
+
+  return gsFromClass? (gsFromClass+' '+String(range||'').trim()) : String(range||'').trim();
+
+}
+
+
+
+// 콤마/줄바꿈 분할
+
+function splitList(text){ return String(text||'').split(/[\,\n]/).map(s=>s.trim()).filter(Boolean); }
+
+
+
+// 학생 토큰 파서
+
+function tokenizeStudent(str){
+
+  const parts = str.split(/\s+/).filter(Boolean);
+
+  const name = parts.shift();
+
+  let dailyScore = '', base = null;
+
+  let attendance = '정상', attitude = '우수', homeworkStatus = '정상';
+
+  let attitudeFlag = null; const attitudeNotes = []; let testReason = '';
+
+  for(const tRaw of parts){
+
+    const t = tRaw.replace(/[,，]/g,'');
+
+    if(/^(\d{1,3})\/(\d{1,3})$/.test(t)){ const [s,b]=t.split('/'); dailyScore=s; base=b; continue; }
+
+    if(/^\d{1,3}$/.test(t)){ if(dailyScore==='') dailyScore=t; else base=Number(t); continue; }
+
+    if(/결석/.test(t)){ attendance='결석'; if(!testReason) testReason='결석으로 인해 테스트 미응시'; continue; }
+
+    if(/지각(\d+)?분?/.test(t)){ const m=t.match(/(\d+)/); attendance = m? `지각 ${m[1]}분` : '지각'; continue; }
+
+    if(/과제.?미흡/.test(t)){ homeworkStatus='미흡'; continue; }
+
+    if(/미응시|무응시|결시/.test(t)){ if(!testReason) testReason='학생 사유로 테스트 미응시'; continue; }
+
+    if(/사유\((.+)\)/.test(t)){ const m=t.match(/사유\((.+)\)/); if(m) testReason = m[1]; continue; }
+
+    if(/졸음|피곤|소극|산만/.test(t)){ attitudeFlag='down'; attitudeNotes.push(t); continue; }
+
+    if(/적극적|적극|성실|집중.?좋음|질문 ?잘함/.test(t)){ attitudeFlag='up'; attitudeNotes.push(t); continue; }
+
+  }
+
+  if(attitudeFlag==='up') attitude='우수';
+
+  if(attitudeFlag==='down') attitude='보통';
+
+  return { name, dailyScore, base, attendance, attitude, homeworkStatus, attitudeNotes, testReason };
+
+}
+
+
+
+// 태도 점수(5점 만점, 결석 0)
+
+function calcAttitudeScore(attendance, attitude, notes){
+
+  if(String(attendance).includes('결석')) return 0;
+
+  if(notes && notes.some(n=>/(적극|질문)/.test(n))) return 5;
+
+  if(attitude==='우수') return 5;
+
+  if(attitude==='보통') return 3;
+
+  return 4;
+
+}
+
+
+
+// 개념 추출(리뷰에 1개 이상 반영)
+
+function extractConcept(progress){
+
+  const p=String(progress||'');
+
+  if(/등차수열|등차/.test(p)) return '등차수열의 일반항과 합';
+
+  if(/등비수열|등비/.test(p)) return '등비수열의 일반항과 합';
+
+  if(/수열의 합|Σ|시그마|부분합/.test(p)) return '시그마 표기와 부분합 개념';
+
+  if(/지수함수|지수/.test(p)) return '지수함수의 증감과 그래프 해석';
+
+  if(/로그함수|로그/.test(p)) return '로그 성질과 그래프 해석';
+
+  if(/삼각함수|사인|코사인|탄젠트/.test(p)) return '삼각함수의 주기와 그래프 해석';
+
+  if(/닮음/.test(p)) return '닮음과 비례식 활용';
+
+  if(/확률|경우의 수/.test(p)) return '경우의 수 기본원리와 확률';
+
+  if(/미분/.test(p)) return '도함수와 증가 감소 판정';
+
+  if(/적분/.test(p)) return '정적분을 이용한 넓이 계산';
+
+  return '';
+
+}
+
+
+
+// 리뷰(문장마다 줄바꿈, 존댓말, 특수기호 금지)
+
+function buildReview({name, attendance, attitude, homeworkStatus, scorePct, conceptsMention, testTaken, testReason}){
+
+  const s=[];
+
+  if(String(attendance).includes('결석')){ s.push(name+' 학생은 오늘 결석하였습니다.'); s.push('다음 수업 전 과제 안내를 전달하고 핵심 개념을 빠르게 점검하겠습니다.'); return s.join('\n'); }
+
+  if(attitude==='우수') s.push('수업 태도가 안정적이며 질문과 참여가 적극적이었습니다.');
+
+  else if(attitude==='보통') s.push('집중이 일정하지 않아 풀이 과정을 단계별로 점검하였습니다.');
+
+  else s.push('수업 태도는 추가 관찰이 필요하였습니다.');
+
+  if(conceptsMention) s.push('오늘은 '+conceptsMention+'을 중심으로 개념을 점검하였습니다.');
+
+  if(/미흡/.test(homeworkStatus)) s.push('과제 수행이 부족하여 핵심 문제를 우선 복습하도록 안내하였습니다.');
+
+  else s.push('과제 수행이 안정적이어서 다음 시간에는 난이도를 조금 높이겠습니다.');
+
+  if(testTaken){ if(scorePct<70) s.push('테스트 결과를 바탕으로 기초 유형부터 정확도를 끌어올리겠습니다.'); else s.push('테스트 결과에 따라 대표 유형의 변형 문제까지 확장하겠습니다.'); }
+
+  else { s.push('오늘은 테스트를 진행하지 못하였습니다.'); s.push('다음 시간 동일 범위로 확인하겠습니다.'); if(testReason) s.push('미응시 사유를 기록하였습니다.'); }
+
+  return s.join('\n');
+
+}
+
+
+
+// 로컬 템플릿(규정 형식)
+
+function localReportTemplate(p){
+
+  const {name, className, dateStr, progress, homework, testLabel, score, base, attendance, attitude, homeworkStatus, teacherName, baseFromRange, attitudeNotes, notice, testReason} = p;
+
+  const attScore = calcAttitudeScore(attendance, attitude, attitudeNotes);
+
+  const gradeRange = normalizeRangeLabel(testLabel, className);
+
+  let testTaken = !!score; let pct = null;
+
+  if(score){ let den = base || baseFromRange; pct = den? to100(score, den) : Math.max(0, Math.min(100, Math.round(Number(score)))); }
+
+  const progressItems = splitList(progress); const homeworkItems = splitList(homework);
+
+  const conceptsMention = extractConcept(progress);
+
+  const lines = [];
+
+  lines.push(`안녕하세요. 고수학 학원입니다. ${dateStr} ${className} ${name}학생의 학습 안내입니다.`);
+
+  lines.push('');
+
+  lines.push(`출결: ${attendance}`);
+
+  lines.push(`태도: ${attitude} (${attScore}/5)`);
+
+  lines.push(`과제: ${homeworkStatus}`);
+
+  lines.push('');
+
+  lines.push('수업 진도');
+
+  if(progressItems.length){ progressItems.forEach(it=>lines.push(`- ${className}: ${it}`)); } else { lines.push('- 입력된 진도 없음'); }
+
+  lines.push('');
+
+  lines.push('금일 과제');
+
+  if(homeworkItems.length){ homeworkItems.forEach(it=>lines.push(`- ${className}: ${it}`)); } else { lines.push('- 입력된 과제 없음'); }
+
+  lines.push('');
+
+  lines.push('데일리 테스트');
+
+  lines.push(`- 범위: ${gradeRange || '입력값 확인 필요'}`);
+
+  if(testTaken && pct!==null){ lines.push(`- 점수: ${pct}점 (100점 만점 기준)`); }
+
+  else { lines.push(`- 점수: 미기재`); lines.push(`- ※ 테스트 미응시: ${testReason || (attendance.includes('결석')? '결석' : '수업 시간 내 미진행')}`); }
+
+  lines.push('');
+
+  lines.push('수업리뷰');
+
+  lines.push(buildReview({name, attendance, attitude, homeworkStatus, scorePct:pct??0, conceptsMention, testTaken, testReason}));
+
+  lines.push('');
+
+  if(teacherName) lines.push(`담당: ${teacherName}`);
+
+  if(notice && notice.trim()) { lines.push(''); lines.push('공지사항'); lines.push(`- ${notice.trim()}`); }
+
+  return lines.join('\n');
+
+}
+
+
+
+// ===== 상태 표시 유틸 =====
+
+function ensureModeChip(){
+
+  let holder=document.getElementById('modeChipHolder');
+
+  if(!holder){
+
+    const firstCard=document.querySelector('.card');
+
+    holder=document.createElement('div');
+
+    holder.className='row';
+
+    holder.style.marginTop='6px';
+
+    holder.id='modeChipHolder';
+
+    const chip=document.createElement('div');
+
+    chip.id='modeChip';
+
+    chip.className='chip';
+
+    chip.textContent='모드: 확인중';
+
+    holder.appendChild(chip);
+
+    if(firstCard) firstCard.appendChild(holder);
+
+  }
+
+  return document.getElementById('modeChip');
+
+}
+
+function setChip(text, style){
+
+  const chip=ensureModeChip();
+
+  chip.textContent=text;
+
+  chip.classList.remove('ok','warn','bad');
+
+  if(style==='ok') chip.classList.add('ok');
+
+  else if(style==='bad') chip.classList.add('bad');
+
+  else chip.classList.add('warn');
+
+}
+
+function refreshModeChip(){
+
+  const useGpt=$('#useGpt')?.checked;
+
+  const ep=($('#gptEndpoint')?.value||'').trim();
+
+  if(useGpt){ setChip('모드: GPT 우선'+(ep? ' · 엔드포인트 설정됨':' · 엔드포인트 미설정 → 폴백'),'warn'); }
+
+  else { setChip('모드: 로컬 생성','ok'); }
+
+}
+
+
+
+// ===== GPT 연동 =====
+
+async function fetchGptReport(payload){
+
+  const url = ($('#gptEndpoint')?.value || '').trim();
+
+  if(!url) throw new Error('GPT 엔드포인트가 비어 있습니다.');
+
+  const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+
+  const data = await res.json();
+
+  if(!data || !data.report) throw new Error('서버 응답 형식 오류');
+
+  return data.report;
+
+}
+
+
+
+// ===== 파서/유틸 =====
+
+function parseInput(raw){
+
+  const lines = String(raw||'').split(/\n+/).map(s=>s.trim()).filter(Boolean);
+
+  let className='', progress='', homework='', testRange='', studentsRaw='';
+
+  for(const line of lines){
+
+    const [key,...rest] = line.split(':');
+
+    const k = (key||'').trim();                    // ← 키 트림 보강
+
+    const value = rest.join(':').trim();
+
+    if(/^반명/.test(k)) className=value;
+
+    else if(/^진도/.test(k)) progress=value;
+
+    else if(/^과제/.test(k)) homework=value;
+
+    else if(/^테스트/.test(k)) testRange=value;    // 테스트범위 / 테스트 범위 모두 인식
+
+    else if(/^학생/.test(k)) studentsRaw+=(studentsRaw?', ':'')+value;
+
+  }
+
+  const students = studentsRaw.split(',').map(s=>s.trim()).filter(Boolean).map(tokenizeStudent);
+
+  return {className, progress, homework, testRange, students};
+
+}
+
+
+
+// ===== 생성 메인 =====
+
+async function generateReports(){
+
+  ensureToday();
+
+  const raw=$('#inputData').value.trim(); if(!raw){alert('입력 데이터를 먼저 넣어주세요.');return;}
+
+  const teacherName=$('#teacherName').value.trim(); const dateIso=$('#reportDate').value || todayKSTISO(); const notice=$('#notice').value.trim();
+
+  const {className,progress,homework,testRange,students}=parseInput(raw);
+
+  const dateStr=fmtDate(dateIso); const baseFromRange=extractBaseFromRange(testRange);
+
+  const useGpt = $('#useGpt')?.checked; const container=$('#reports'); container.innerHTML=''; const bundle=[]; let gptOk=0,gptFallback=0,localOk=0;
+
+
+
+  for(const s of students){
+
+    const payload={ name:s.name, className, progress, homework, testRange: testRange||'데일리 테스트', score:s.dailyScore, base:s.base, attendance:s.attendance, attitude:s.attitude, homeworkStatus:s.homeworkStatus, teacherName, dateStr, attitudeNotes:s.attitudeNotes, testReason: (s.testReason || (/생략/.test(testRange)? '테스트 생략' : '')), notice };
+
+    let text;
+
+    if(useGpt){
+
+      try{ text = await fetchGptReport(payload); console.info('[GPT OK]', s.name); gptOk++; }
+
+      catch(e){ console.warn('GPT 실패, 로컬 폴백:', s.name, e); gptFallback++; text = localReportTemplate({ ...payload, testLabel: payload.testRange, baseFromRange, attitudeNotes: s.attitudeNotes }); }
+
+    } else {
+
+      text = localReportTemplate({ ...payload, testLabel: payload.testRange, baseFromRange, attitudeNotes: s.attitudeNotes }); localOk++;
+
+    }
+
+    const item=document.createElement('div'); item.className='report-item';
+
+    const block=document.createElement('div'); block.className='report'; block.contentEditable=true; block.textContent=text;
+
+    const btn=document.createElement('button'); btn.className='btn secondary sm'; btn.textContent='📋 복사';
+
+    btn.addEventListener('click', async ()=>{
+
+      const ok = await copyToClipboard(block.innerText || block.textContent);
+
+      if(ok){
+
+        alert(s.name + ' 학생 리포트를 복사했습니다.');
+
+      }else{
+
+        selectNodeText(block);
+
+        alert('브라우저 정책으로 자동 복사가 차단되었습니다. 현재 리포트가 선택되었습니다. ⌘/Ctrl + C 를 눌러 복사해 주세요.');
+
+      }
+
+    });
+
+    item.appendChild(block); item.appendChild(btn); container.appendChild(item); bundle.push(text);
+
+  }
+
+  $('#count').textContent=bundle.length+'건';
+
+  const ep=( $('#gptEndpoint')?.value || '' ).trim();
+
+  if(useGpt){
+
+    if(!ep){ setChip('모드: GPT 우선 · 엔드포인트 없음 → 로컬 '+(localOk+gptFallback)+'건','warn'); }
+
+    else { setChip('모드: GPT 우선 · 성공 '+gptOk+'건 · 폴백 '+gptFallback+'건', gptFallback? 'warn':'ok'); }
+
+  }else{
+
+    setChip('모드: 로컬 생성','ok');
+
+  }
+
+}
+
+
+
+function copyAllReports(){
+
+  const all = $$('.report').map(d=>d.innerText || d.textContent).join('\n\n');  // ← 오타 제거
+
+  if(!all.trim()){ alert('복사할 리포트가 없습니다.'); return; }
+
+  copyToClipboard(all).then(ok=>{
+
+    if(ok) alert('반 전체 리포트가 복사되었습니다.');
+
+    else alert('브라우저 정책으로 자동 복사가 차단되었습니다. 각 리포트의 복사 버튼을 이용하거나 텍스트를 드래그한 뒤 ⌘/Ctrl + C 로 복사해 주세요.');
+
+  });
+
+}
+
+
+
+function downloadTxt(){
+
+  const all=$$('.report').map(d=>d.textContent).join('\n\n');
+
+  if(!all.trim()){alert('내보낼 리포트가 없습니다.');return;}
+
+  const blob=new Blob([all],{type:'text/plain;charset=utf-8'});
+
+  const a=document.createElement('a');
+
+  a.href=URL.createObjectURL(blob);
+
+  a.download=`고수학_리포트_${$('#reportDate').value}.txt`;
+
+  document.body.appendChild(a); a.click(); a.remove();
+
+}
+
+
+
+// ===== 초기화 & 로컬 저장 =====
+
+(function init(){
+
+  ensureToday();
+
+  $('#btn-generate')?.addEventListener('click', ()=>generateReports());
+
+  $('#btn-copy-all')?.addEventListener('click', copyAllReports);
+
+  $('#btn-download')?.addEventListener('click', downloadTxt);
+
+  $('#btn-sample')?.addEventListener('click', ()=>{ $('#inputData').value=`반명: 중3T(수용)
+
+진도: 중3-1 수열의 합(Σ), 등차수열 일반항
+
+과제: 중3-1 수열 P1~P3, 오답정리
+
+테스트 범위: 중3-1 등차수열 대표유형 (6)
+
+학생: 이종찬 5 적극적, 김도윤 4 질문 잘함, 구동건 미응시(사유: 조퇴), 박태영 결석`; });
+
+  $('#btn-clear')?.addEventListener('click', ()=>{ $('#inputData').value=''; $('#extraRequest').value=''; $('#notice').value=''; $('#reports').innerHTML=''; $('#count').textContent='0건'; });
+
+  $('#btn-today')?.addEventListener('click', ()=>{ $('#reportDate').value = todayKSTISO(); });
+
+  try{
+
+    const ep=localStorage.getItem('gomath_gptEndpoint'); if(ep) $('#gptEndpoint').value=ep;
+
+    const ug=localStorage.getItem('gomath_useGpt');
+
+    $('#useGpt').checked = ug ? (ug==='1') : true;
+
+    if(!ug) localStorage.setItem('gomath_useGpt','1');
+
+  }catch{}
+
+  $('#gptEndpoint')?.addEventListener('change', ()=>{ try{ localStorage.setItem('gomath_gptEndpoint',$('#gptEndpoint').value.trim()); }catch{} refreshModeChip(); });
+
+  $('#useGpt')?.addEventListener('change', ()=>{ try{ localStorage.setItem('gomath_useGpt',$('#useGpt').checked?'1':'0'); }catch{} refreshModeChip(); });
+
+  refreshModeChip();
+
+})();
+
 </script>
+
 </body>
+
 </html>
