@@ -1,129 +1,163 @@
-// server.js
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
-const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
 
-// --- CORS 옵션 (모든 출처 허용 + 필요한 헤더/메서드 허용) ---
+/* ===== CORS (전역) ===== */
 const corsOptions = {
-  origin: '*', // 특정 도메인만 허용하려면 '*' 대신 ['https://example.com'] 식으로 지정
-  methods: ['POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: false,
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: false,
 };
 app.use(cors(corsOptions));
-// 프리플라이트 일괄 처리
 app.options('*', cors(corsOptions));
-
-// 혹시 모를 누락 대비: 응답에 직접 헤더 추가
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  next();
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
 });
 
-// 바디 파서
-app.use(express.json());
+/* ===== 파서 ===== */
+app.use(express.json({ limit: '1mb' }));
 
-// 헬스체크 (Render/모니터링용)
-app.get('/health', (req, res) => res.status(200).send('ok'));
+/* ===== 유틸 (기존 코드와 동일) ===== */
+function kstMonthDay() {
+  const now = new Date();
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const kst = new Date(utc + 9 * 3600000);
+  const mm = String(kst.getMonth() + 1).padStart(2, '0');
+  const dd = String(kst.getDate()).padStart(2, '0');
+  return `${mm}월 ${dd}일`;
+}
 
-app.post('/generate', async (req, res) => {
-  const {
-    name, className, progress, homework, testRange,
-    score, weakScore, extraRequest, teacherName,
-    attendance, attitude, homeworkStatus
-  } = req.body;
+/* ===== Gemini 연동 및 호출 ===== */
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }); // 비용 및 속도 고려하여 flash 모델 사용
 
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const dateText = `${month}월 ${day}일`;
+// 단일 호출 함수 (재시도 로직은 별도 라이브러리 또는 구현 필요)
+async function fetchGeminiReport(prompt) {
+  const result = await model.generateContent(prompt);
+  const response = result.response;
+  return response.text();
+}
 
-  const greeting = teacherName && teacherName.trim() !== ''
-    ? `안녕하세요. ${className}반 ${name}학생을 지도하고 있는 고수학 학원 ${teacherName} 선생님 입니다. ${dateText} 데일리 리포트 입니다.`
-    : `안녕하세요. 고수학 학원 입니다. ${className}반 ${name}학생의 ${dateText} 데일리 리포트 입니다.`;
+/* ===== 프롬프트 빌더 (기존 코드와 동일) ===== */
+function buildPrompt(payload) {
+  const {
+    name = '', className = '', progress = '', homework = '',
+    testRange = '', score = '', weakScore = '', attendance = '정상',
+    attitude = '우수', homeworkStatus = '정상', teacherName = '',
+    dateStr = kstMonthDay(), notice = '', lengthMode = 'standard',
+    scoreFormat = 'int', includeClass = true, includeTeacher = false, testReason = '',
+  } = payload || {};
 
-  const prompt = `
-당신은 경기도 광명시 철산동의 수학 전문 학원 '고수학' 데일리 리포트 전용 AI입니다.
-아래 정보를 바탕으로 **간결하고 핵심만 요약한 리포트**를 작성해 주세요.
+  //... (기존 buildPrompt 함수 내용 그대로)
+  const greetHead = includeTeacher && teacherName
+    ? `고수학 학원(담당: ${teacherName})`
+    : '고수학 학원';
 
-[작성 규칙]
-- 인사말은 반드시 아래 문장으로 시작:
-${greeting}
-- 각 항목은 한두 줄로만 간결하게 작성
-- 불필요한 장황한 설명은 제거
-- 수업리뷰는 3문장 이내로 핵심만
-- 학생의 태도나 출결, 과제 상태는 간단히 명시
-- 테스트 점수와 취약유사 점수는 함께 표시
-- 진도에서 한 가지 개념을 구체적으로 언급
+  const greetMid = includeClass
+    ? `${dateStr} ${className} ${name}학생의 학습 안내입니다.`
+    : `${dateStr} ${name}학생의 학습 안내입니다.`;
 
-[입력 데이터]
+  const lenGuide = (lengthMode === 'short')
+    ? '수업리뷰는 2문장 내외로 간결하게 작성합니다.'
+    : (lengthMode === 'long'
+        ? '수업리뷰는 5~7문장 내외로 조금 자세히 작성합니다.'
+        : '수업리뷰는 3~5문장 내외로 표준 길이로 작성합니다.');
+
+  const scGuide = (scoreFormat === 'one')
+    ? '점수는 한 자리 소수로 표시합니다.'
+    : '점수는 정수로 반올림해 표시합니다.';
+
+  const testTaken = (typeof score === 'string' && score.trim() !== '') || (typeof score === 'number' && !isNaN(score));
+  const testScoreLine = testTaken
+    ? `- 점수: ${score}점 (100점 만점 기준)`
+    : `- 점수: 미기재\n- ※ 테스트 미응시: ${testReason || (attendance.includes('결석') ? '결석' : '사유 미기재')}`;
+
+  return {
+    system: `
+너는 경기도 광명시 철산동의 수학 전문 학원 '고수학' 데일리 리포트 작성 전용 AI다.
+아래 '출력 형식'과 '작성 원칙'을 반드시 지켜라.
+[출력 형식]
+안녕하세요. ${greetHead}입니다. ${greetMid}
+
 출결: ${attendance}
 태도: ${attitude}
 과제: ${homeworkStatus}
+
+수업 진도
+- ${className}: (입력된 진도 요약 1~2줄)
+
+금일 과제
+- ${className}: (입력된 과제 요약 1~2줄)
+
+데일리 테스트
+- 범위: ${testRange}
+${testScoreLine}
+
+수업리뷰
+- 학생의 태도, 개념 이해, 문제 해결력, 실수 보완 여부 등을 바탕으로 ${lengthMode==='short'?'약 100자':'약 250자'} 이내 피드백을 작성한다.
+- 학생의 점수에 대한 평가는 지양하고, 수업 내용과 연계된 선생님의 학습 방향과 의지를 중심으로 서술한다.
+- 테스트 미응시 시 관련 내용을 반드시 언급한다.
+- 반별 공지사항(notice)이 있으면 마지막에 1줄로 덧붙인다.
+- 반드시 리포트에 언급된 단원 중 하나의 **수학 개념 또는 문제유형**을 1가지 이상 구체적으로 반영한다.
+- 문장은 모두 존댓말(…습니다/…하였습니다)로 끝내고, 문장마다 줄바꿈하여 가독성을 높인다.
+- 화살표(→), 중점(·) 등의 특수문자를 사용하지 않는다.
+[작성 원칙]
+- “안녕하세요. 고수학 학원입니다.”로 시작하는 인사말을 유지한다.
+- 점수는 항상 100점 기준으로 표기한다(원시점수라는 표현 금지).
+- ${lenGuide}
+- ${scGuide}
+- 난이도 표기는 생략한다.
+- 내용은 해당 학생 개인만을 위한 리뷰로 작성한다.
+`.trim(),
+    user: `
+[입력 데이터]
+반명: ${className}
+학생: ${name}
+출결: ${attendance}
+태도: ${attitude}
+과제 상태: ${homeworkStatus}
 수업 진도: ${progress}
-과제 내용: ${homework}
+금일 과제: ${homework}
 테스트 범위: ${testRange}
-데일리 테스트 점수: ${score ? score + '점' : '미응시'}
-취약유사 점수: ${weakScore ? weakScore + '점' : '없음'}
-추가 요구조건: ${extraRequest}
+테스트 점수(100점 기준): ${testTaken ? `${score}점` : '미응시'}
+취약유사 점수: ${weakScore || '없음'}
+공지사항: ${notice || '없음'}
+[주의]
+- 위의 '출력 형식'과 '작성 원칙'을 **그대로** 지켜서 하나의 리포트를 완성하세요.
+- 출력에는 불릿 기호 외 특수문자를 쓰지 마세요.
+`.trim()
+  };
+}
 
-[리포트 포맷]
-안녕하세요. (선생님 이름 유무에 맞는 인사말) 
+/* ===== 라우트 ===== */
+app.get('/health', (req, res) => res.status(200).json({ ok: true, service: 'gomath-report', time: Date.now() }));
 
-출결: ○○
-태도: ○○
-과제: ○○
+app.post('/generate', async (req, res) => {
+  try {
+    const payload = req.body || {};
+    if (!payload.dateStr) payload.dateStr = kstMonthDay();
 
-진도: (한 줄)
-과제: (한 줄)
-테스트: (테스트 종류와 점수 요약)
+    const { system, user } = buildPrompt(payload);
+    const prompt = `${system}\n\n${user}`;
 
-수업리뷰: (3문장 이내로 간단히 작성)
-`;
-
-  try {
-    // OpenAI 호출
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 30000); // 30s 타임아웃
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [{ role: 'user', content: prompt }],
-    }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timer);
-
-    if (!response.ok) {
-      const text = await response.text().catch(() => '');
-      return res.status(502).json({ report: `⚠️ OpenAI 호출 실패: HTTP ${response.status} ${response.statusText} ${text.slice(0,200)}` });
-    }
-
-    const data = await response.json();
-    if (!data.choices || !data.choices[0]?.message?.content) {
-      return res.status(500).json({ report: '⚠️ GPT 응답 형식 오류' });
-    }
-
-    // CORS 헤더가 에러 응답에도 계속 붙도록 보장 (위의 전역 미들웨어가 처리)
-    res.json({ report: data.choices[0].message.content });
-  } catch (err) {
-    const msg = err?.name === 'AbortError' ? '요청 시간 초과' : (err?.message || String(err));
-    res.status(500).json({ report: '⚠️ 서버 내부 오류: ' + msg });
-  }
+    const text = await fetchGeminiReport(prompt);
+    return res.json({ report: text });
+  } catch (err) {
+    const msg = err?.message || String(err);
+    return res.status(500).json({ report: `⚠️ 서버 내부 오류: ${msg}` });
+  }
 });
 
+/* ===== 시작 ===== */
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`✅ 서버 실행: http://localhost:${PORT}`));
-
+app.listen(PORT, () => {
+  console.log(`✅ 서버 실행: http://localhost:${PORT}`);
+});
